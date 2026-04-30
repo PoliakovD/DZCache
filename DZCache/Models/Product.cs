@@ -1,6 +1,3 @@
 ﻿namespace DZCache.Models;
 
-public class Product
-{
-    
-}
+public record Product (Guid Id, string Name, decimal Price);

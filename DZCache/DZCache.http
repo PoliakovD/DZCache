@@ -1,6 +1,11 @@
 @DZCache_HostAddress = http://localhost:5120
 
-GET {{DZCache_HostAddress}}/weatherforecast/
+GET {{DZCache_HostAddress}}/products/
 Accept: application/json
 
 ###
+GET {{DZCache_HostAddress}}/product/6bac4580-8724-4497-bbab-b44af82d80ed
+Accept: application/json
+
+
+

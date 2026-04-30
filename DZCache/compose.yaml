@@ -1,0 +1,37 @@
+name: dz_cache
+services:
+  postgres-nocache:
+    container_name: postgres_nocache
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: postgres_nocache_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    networks:
+      - dz-network
+      
+  redis-cache:
+    container_name: redis_cache
+    image: redis:latest
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - dz-network
+networks:
+  dz-network:
+    driver: bridge

@@ -1,49 +1,45 @@
+using DZCache.Data;
+using DZCache.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace DZCache;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-        builder.Services.AddAuthorization();
+        // Настройка Redis для L2 кеша
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = builder.Configuration.GetConnectionString("Redis");
+            options.InstanceName = "DzCache";
+        });
 
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-        builder.Services.AddOpenApi();
-
+        // Настройка гибридного кеша
+        builder.Services.AddHybridCache(options =>
+        {
+            options.DefaultEntryOptions = new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromMinutes(5), // Общее время жизни кеша
+                LocalCacheExpiration = TimeSpan.FromMinutes(1) // Время жизни в L1
+            };
+        });
+        builder.Services.AddDbContext<DzDbContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
+                .LogTo(Console.WriteLine, LogLevel.Information));
+        
+        builder.Services.AddScoped<ProductsService>();
+       
         var app = builder.Build();
+        
+        
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.MapOpenApi();
-        }
+        app.MapGet("/products", (ProductsService s) => s.GetProducts());
+        app.MapGet("/product/{id}", (ProductsService s, Guid id) => s.GetProduct(id));
 
-        app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
-        var summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-        app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-        {
-            var forecast =  Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                {
-                    Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    TemperatureC = Random.Shared.Next(-20, 55),
-                    Summary = summaries[Random.Shared.Next(summaries.Length)]
-                })
-                .ToArray();
-            return forecast;
-        })
-        .WithName("GetWeatherForecast");
-
-        app.Run();
+        await app.RunAsync();
     }
 }
